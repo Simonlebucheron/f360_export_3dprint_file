@@ -71,7 +71,7 @@ def export_3mf(exportMgr, design, designName, outputDir):
     exportMgr.execute(threemfOptions)
 
 # Main function that orchestrates the exports
-def run(context, export_individual_stl=False):
+def run(context, export_individual_stl=True):
     """
     Main function to export the design in multiple formats (STEP, Fusion Archive, STL, and 3MF).
     

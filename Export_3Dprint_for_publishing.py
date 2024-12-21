@@ -41,15 +41,19 @@ def export_fusion_archive(exportMgr, designName, outputDir):
     fusionArchiveOptions = exportMgr.createFusionArchiveExportOptions(fusionArchiveFilepath)
     exportMgr.execute(fusionArchiveOptions)
 
-# Function to export to STL format
-def export_stl(exportMgr, design, designName, outputDir):
+# Function to export to STL format for a given component
+def export_stl(exportMgr, design, designName, outputDir, component=None):
     """
-    Exports the design to STL format, ensuring the file name is unique.
+    Exports the design or a given component to STL format, ensuring the file name is unique.
     Sets mesh refinement to high.
     """
-    stlFilepath = os.path.join(outputDir, f'{designName}.stl')
+    if component is None:
+        # If no component is passed, export the root component (default behavior)
+        component = design.rootComponent
+    
+    stlFilepath = os.path.join(outputDir, f'{component.name}.stl')
     stlFilepath = check_and_create_unique_filename(stlFilepath)
-    stlOptions = exportMgr.createSTLExportOptions(design.rootComponent, stlFilepath)
+    stlOptions = exportMgr.createSTLExportOptions(component, stlFilepath)
     stlOptions.sendToPrintUtility = False  # Disable sending to print utility
     stlOptions.meshRefinement = adsk.fusion.MeshRefinementSettings.MeshRefinementHigh
     exportMgr.execute(stlOptions)
@@ -67,7 +71,13 @@ def export_3mf(exportMgr, design, designName, outputDir):
     exportMgr.execute(threemfOptions)
 
 # Main function that orchestrates the exports
-def run(context):
+def run(context, export_individual_stl=False):
+    """
+    Main function to export the design in multiple formats (STEP, Fusion Archive, STL, and 3MF).
+    
+    Parameters:
+    - export_individual_stl (bool): If True, exports each component as a separate STL file.
+    """
     ui = None
     try:
         app = adsk.core.Application.get()  # Get the active Fusion 360 application instance
@@ -94,9 +104,18 @@ def run(context):
         # Export the design in all formats
         export_step(exportMgr, designName, outputDir)
         export_fusion_archive(exportMgr, designName, outputDir)
-        export_stl(exportMgr, design, designName, outputDir)
         export_3mf(exportMgr, design, designName, outputDir)
-        
+
+        # Export individual STLs if the flag is set to True
+        if export_individual_stl:
+            # Iterate over all components in the design and export STL for each
+            for occurrence in design.rootComponent.occurrences:
+                export_stl(exportMgr, design, designName, outputDir, occurrence.component)
+
+        else:
+            # Export STL for the root component if not exporting individual STLs
+            export_stl(exportMgr, design, designName, outputDir)
+
         # Display success message
         ui.messageBox(f'Design exported to: {outputDir}')
         
